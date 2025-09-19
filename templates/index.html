@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fluffy Bird</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const flapSound = new Audio("/static/flap.wav");
+        const hitSound = new Audio("/static/hit.wav");
+
+        // Bird
+        let bird = {x: 50, y: 300, radius: 20, velocity: 0};
+        const gravity = 0.5;
+        const jump = -10;
+
+        // Pipes
+        const pipes = [];
+        const pipeWidth = 70;
+        const pipeGap = 150;
+        const pipeSpeed = 3;
+
+        let score = 0;
+        let gameOver = false;
+
+        function addPipe() {
+            const height = Math.random() * 300 + 100;
+            pipes.push({x: canvas.width, height: height});
+        }
+
+        // Initial pipes
+        addPipe();
+
+        document.addEventListener("keydown", e => {
+            if(e.code === "Space" && !gameOver){
+                bird.velocity = jump;
+                flapSound.play();
+            }
+        });
+
+        function draw() {
+            ctx.fillStyle = "#87CEEB";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Bird
+            bird.velocity += gravity;
+            bird.y += bird.velocity;
+            ctx.fillStyle = "red";
+            ctx.beginPath();
+            ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Pipes
+            for(let pipe of pipes){
+                pipe.x -= pipeSpeed;
+                ctx.fillStyle = "green";
+                ctx.fillRect(pipe.x, 0, pipeWidth, pipe.height);
+                ctx.fillRect(pipe.x, pipe.height + pipeGap, pipeWidth, canvas.height - pipe.height - pipeGap);
+
+                // Collision
+                if(bird.x + bird.radius > pipe.x && bird.x - bird.radius < pipe.x + pipeWidth){
+                    if(bird.y - bird.radius < pipe.height || bird.y + bird.radius > pipe.height + pipeGap){
+                        hitSound.play();
+                        gameOver = true;
+                    }
+                }
+            }
+
+            // Remove pipes
+            if(pipes[0].x < -pipeWidth){
+                pipes.shift();
+                score++;
+                addPipe();
+            }
+
+            // Ground/ceiling collision
+            if(bird.y - bird.radius < 0 || bird.y + bird.radius > canvas.height){
+                hitSound.play();
+                gameOver = true;
+            }
+
+            // Score
+            ctx.fillStyle = "white";
+            ctx.font = "30px Arial";
+            ctx.fillText("Score: " + score, 10, 40);
+
+            if(!gameOver) requestAnimationFrame(draw);
+            else ctx.fillText("Game Over!", 120, 300);
+        }
+
+        draw();
+    </script>
+</body>
+</html>
